@@ -14,7 +14,7 @@
                 <a href="?page=role"><li>Role</li></a>
                 <a href="?page=centre"><li>Centre</li></a>
                 <a href="?page=formation"><li>Formation</li></a>
-                <a href="?page=equipe"><li>Equipe</li></a>
+                <a href="?page=pedagogie"><li>Equipe</li></a>
                 <a href="?page=session"><li>Session</li></a>
                 <a href="?page=apprenant"><li>Apprenant</li></a>
             </ul>
@@ -38,124 +38,132 @@ $pass = "admin"; // Remplacez par votre mot de passe
     $bdd->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $bdd->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
 
-    // Page role
 
-    //supprimer des données
-    if (isset($_GET['deleteRole'])) {
-        $idRole = $_GET['deleteRole'];
-        $sql = "DELETE FROM role WHERE id_role = :idRole";
-        $stmt = $bdd->prepare($sql);
-        $stmt->bindParam(':idRole', $idRole);
-        $stmt->execute();
-    }
 
-    //contenu de la page formation
-    if (isset($_GET["page"]) && $_GET["page"] == "role"){
 
-        $sql = "SELECT * FROM role";
-        $stmt = $bdd->prepare($sql);
-        $stmt->execute();
-        $roles = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+    // 1 Page role
+
+    //Si page = role (true) : Afficher le contenu de la page role
+    if (isset($_GET["page"]) && $_GET["page"] == "role") {
+        $sqlRole = "SELECT * FROM role";
+        $requeteRole = $bdd->query($sqlRole);
+        $resultsRole = $requeteRole->fetchAll(PDO::FETCH_ASSOC);
+        
         ?>
 
-            <!-- Formulaire à remplir -->
+        <!-- Tableau -->
+        <div class="centerDiv">
+
+            <!-- Partie d'ajout de données -->
             <form method="POST">
-                <h1>Ajout de rôle</h1>
-                <label>Rôle :</label>
+                <label for="nomRole">Nom de role :</label>
                 <input type="text" name="nomRole">
-                <br>
-                <input type="submit" name="submitRole" value="Enregistrer">
+                <input type="submit" name="submitRole" value="Ajouter">
             </form>
+
+            <table border="1">
+                <tr>
+                    <!-- Noms des colonnes -->
+                    <th>ID :</th>
+                    <th>Nom Rôle :</th>
+                    <th>Modifier :</th>
+                    <th>Action :</th>
+                </tr>
+
+                <?php
+                // Données à entrer dans le tableau par la base de données
+                foreach ($resultsRole as $roles) {
+                    echo '<tr>';
+                    echo '<td>' . ($roles['id_role']) . '</td>';
+                    echo '<td>' . ($roles['nom_role']) . '</td>';
+                    echo '<td><a href="?page=role&type=modifier&id=' . ($roles['id_role']) . '"><button>Modifier</button></a></td>';
+                    echo '<td><a href="?page=role&deleteRole=' . ($roles['id_role']) . '" onclick="return confirm(\'Êtes-vous sûr de vouloir supprimer ce rôle ?\');"><button>Supprimer</button></a></td>';
+                    echo '</tr>';
+                }
+                ?>
+
+            </table>
+
+        </div>
 
         <?php
-
-        // Afficher dans un tableau
-        echo '<table border="1">';
-        echo '<tr><th>ID</th><th>Nom du rôle</th><th>Actions</th></tr>';
-        foreach ($roles as $role) {
-            echo '<tr>';
-            echo '<td>' . htmlspecialchars($role['id_role']) . '</td>';
-            echo '<td>' . htmlspecialchars($role['nom_role']) . '</td>';
-            echo '<td>
-                <a href="?page=role&editRole=' . $role['id_role'] . '">Modifier</a> |
-                <a href="?page=role&deleteRole=' . $role['id_role'] . '" onclick="return confirm(\'Êtes-vous sûr de vouloir supprimer ce rôle ?\');">Supprimer</a></td>';
-            echo '</tr>';
-        }
-
-        echo '</table>';
-
-    }
-
-    // Bouton enregistrer dans BDD
-    if (isset($_POST['submitRole'])){
-        $nomRole = $_POST['nomRole'];
-
-        $sql = "INSERT INTO `role`(`nom_role`) VALUES ('$nomRole')";
-        $bdd->query($sql);
-
-        echo "data ajoutée dans la bdd";
-    }
-
-    // Bouton modifier
-    if (isset($_GET['editRole'])) {
-        $idRole = $_GET['editRole'];
-        $sql = "UPDATE role SET nom_role = :nom_role WHERE id_role = :idRole";
-        $stmt = $bdd->prepare($sql);
-        $stmt->bindParam(':id_role', $idRole);
-        $stmt->bindParam(':nom_role', $nomRole);
-        $stmt->execute();
-        $roleData = $stmt->fetch(PDO::FETCH_ASSOC);
     
-        if ($roleData) {
-            ?>
-            <form method="POST">
-                <h2>Modifier le rôle</h2>
-                <input type="hidden" name="idRole" value="<?php echo $roleData['id_role']; ?>">
-                <label>Nom du rôle :</label>
-                <input type="text" name="nomRole" value="<?php echo htmlspecialchars($roleData['nom_role']); ?>">
-                <br>
-                <input type="submit" name="updateRole" value="Mettre à jour">
-            </form>
-            <?php
+        // Si URL de Type = Modifier (true) avec ID :
+        if (isset($_GET['type']) && $_GET['type'] == "modifier") {
+            $id = $_GET["id"];
+            $sqlId = "SELECT * FROM role WHERE id_role = :id";
+            $requeteId = $bdd->prepare($sqlId);
+            $requeteId->bindParam(':id', $id);
+            $requeteId->execute();
+            $resultsId = $requeteId->fetch(PDO::FETCH_ASSOC);
+    
+            // Formulaire de modification
+            if ($resultsId) {
+                ?>
+                <form method="POST">
+                    <input type="hidden" name="updateIdRole" value="<?php echo ($resultsId['id_role']); ?>">
+                    <input type="text" name="updateNomRole" value="<?php echo ($resultsId['nom_role']); ?>">
+                    <input type="submit" name="updateRole" value="Mise à jour">
+                </form>
+                <?php
+            }
+        }
+    
+        if (isset($_POST["updateRole"])) {
+            // Valider et changer les données dans la base de données avec le bouton "modifier"
+            $updateIdRole = $_POST["updateIdRole"];
+            $updateNomRole = $_POST["updateNomRole"];
+    
+            $sqlUpdate = "UPDATE role SET nom_role = :nomRole WHERE id_role = :idRole";
+            $stmtUpdate = $bdd->prepare($sqlUpdate);
+            $stmtUpdate->bindParam(':nomRole', $updateNomRole);
+            $stmtUpdate->bindParam(':idRole', $updateIdRole);
+            $stmtUpdate->execute();
+    
+            echo "Données modifiées";
+        }
+    
+        // Suppression de données avec bouton "supprimer"
+        if (isset($_GET['deleteRole'])) {
+            $idRole = $_GET['deleteRole'];
+            $sql = "DELETE FROM role WHERE id_role = :idRole";
+            $stmt = $bdd->prepare($sql);
+            $stmt->bindParam(':idRole', $idRole);
+            $stmt->execute();
         }
     }
 
-    if (isset($_POST['updateRole'])) {
-
-        $idRole = $_POST['idRole'];
+    // Ajout de données avec bouton "Ajouter"
+    if (isset($_POST['submitRole'])) {
         $nomRole = $_POST['nomRole'];
-        $sql = "UPDATE role SET nom_role = :nomRole WHERE id_role = :idRole";
+    
+        $sql = "INSERT INTO role (nom_role) VALUES (:nomRole)";
         $stmt = $bdd->prepare($sql);
-        $stmt->bindParam(':nomRole', $nomRole, PDO::PARAM_STR);
-        $stmt->bindParam(':idRole', $idRole, PDO::PARAM_INT);
+        $stmt->bindParam(':nomRole', $nomRole);
         $stmt->execute();
-
-        echo "Le rôle a été mis à jour avec succès.";
+    
+        echo "Role ajouté dans la BDD";
     }
 
-    // Page centre
 
-    //supprimer des données
-    if (isset($_GET['deleteCentre'])) {
-        $idCentre = $_GET['deleteCentre'];
-        $sql = "DELETE FROM centres WHERE id_centre = :idCentre";
-        $stmt = $bdd->prepare($sql);
-        $stmt->bindParam(':idCentre', $idCentre, PDO::PARAM_INT);
-        $stmt->execute();
-    }
 
-    //contenu de la page formation
+
+
+    // 2 Page centre
+
+    //Si page = centre (true) : Afficher le contenu de la page centre
     if (isset($_GET["page"]) && $_GET["page"] == "centre"){
-
-        $sql = "SELECT * FROM centres";
-        $stmt = $bdd->prepare($sql);
-        $stmt->execute();
-        $centres = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $sqlCentre = "SELECT * FROM centres";
+        $requeteCentre = $bdd->query($sqlCentre);
+        $resultsCentre = $requeteCentre->fetchAll(PDO::FETCH_ASSOC);
 
         ?>
 
-            <!-- Formulaire à remplir -->
+        <!-- Tableau -->
+        <div class="centerDiv">
+
+            <!-- Partie d'ajout de données -->
             <form method="POST">
                 <h1>Ajout de centre</h1>
                 <label>Ville :</label>
@@ -169,25 +177,89 @@ $pass = "admin"; // Remplacez par votre mot de passe
                 <br>
                 <input type="submit" name="submitCentre" value="Enregistrer">
             </form>
+
+            <table border="1">
+                <tr>
+                    <!-- Noms des colonnes -->
+                    <th>Ville :</th>
+                    <th>Adresse :</th>
+                    <th>Code postal :</th>
+                    <th>Modifier :</th>
+                    <th>Action :</th>
+                </tr>
+
+                <?php
+                //Données à entrer dans le tableau par la base de données
+                foreach($resultsCentre as $centres){
+                    echo '<tr>';
+                    echo '<td>' . ($centres['ville_centre']) . '</td>';
+                    echo '<td>' . ($centres['adresse_centre']) . '</td>';
+                    echo '<td>' . ($centres['code_postal_centre']) . '</td>';
+                    echo '<td><a href="?page=centre&type=modifier&id=' . ($centres['id_centre']) . '"><button>Modifier</button></a></td>';
+                    echo '<td><a href="?page=centre&deleteCentre=' . ($centres['id_centre']) . '" onclick="return confirm(\'Êtes-vous sûr de vouloir supprimer ce centre ?\');"><button>Supprimer</button></a></td>';
+                    echo '</tr>';
+                }
+                ?>
+
+            </table>
+
+        </div>
+
         <?php
 
-        // Afficher dans un tableau
-        echo '<table border="1">';
-        echo '<tr><th>Ville</th><th>Adresse</th><th>Code Postal</th><th>Actions</th></tr>';
-        foreach ($centres as $centre) {
-            echo '<tr>';
-            echo '<td>' . htmlspecialchars($centre['ville_centre']) . '</td>';
-            echo '<td>' . htmlspecialchars($centre['adresse_centre']) . '</td>';
-            echo '<td>' . htmlspecialchars($centre['code_postal_centre']) . '</td>';
-            echo '<td>
-                <a href="?page=centre&editCentre=' . $centre['id_centre'] . '">Modifier</a> |
-                <a href="?page=centre&deleteCentre=' . $centre['id_centre'] . '" onclick="return confirm(\'Êtes-vous sûr de vouloir supprimer ce centre ?\');">Supprimer</a></td>';
-            echo '</tr>';
+        // Si URL de type = Modifier (true) avec ID :
+        if(isset($_GET['type']) && $_GET['type'] == "modifier"){
+            $id = $_GET["id"];
+            $sqlId = "SELECT * FROM centres WHERE id_centre = :id";
+            $requeteId = $bdd->prepare($sqlId);
+            $requeteId->bindParam(':id', $id);
+            $requeteId->execute();
+            $resultsId = $requeteId->fetch(PDO::FETCH_ASSOC);
+
+            // Formulaire de modification
+            if ($resultsId){
+                ?>
+                <form method="POST">
+                    <input type="hidden" name="updateIdCentre" value="<?php echo ($resultsId['id_centre']); ?>">
+                    <input type="text" name="updateVilleCentre" value="<?php echo ($resultsId['ville_centre']); ?>">
+                    <input type="text" name="updateAdresseCentre" value="<?php echo ($resultsId['adresse_centre']); ?>">
+                    <input type="text" name="updateCpCentre" value="<?php echo ($resultsId['code_postal_centre']); ?>">
+                    <input type="submit" name="updateCentre" value="Mise à jour">
+                </form>
+                <?php
+            }
+
         }
-        echo '</table>';
+        
+        if (isset($_POST["updateCentre"])) {
+            //valider et changer les données dans la bdd avec le bouton "modifier"
+            $updateIdCentre = $_POST["updateIdCentre"];
+            $updateVilleCentre = $_POST["updateVilleCentre"];
+            $updateAdresseCentre = $_POST["updateAdresseCentre"];
+            $updateCpCentre = $_POST["updateCpCentre"];
+        
+            $sqlUpdate = "UPDATE centres SET ville_centre = :villeCentre, adresse_centre = :adresseCentre, code_postal_centre = :cpCentre WHERE id_centre = :idCentre";
+            $stmtUpdate = $bdd->prepare($sqlUpdate);
+            $stmtUpdate->bindParam(':villeCentre', $updateVilleCentre);
+            $stmtUpdate->bindParam(':adresseCentre', $updateAdresseCentre);
+            $stmtUpdate->bindParam(':cpCentre', $updateCpCentre);
+            $stmtUpdate->bindParam(':idCentre', $updateIdCentre);
+            $stmtUpdate->execute();
+        
+            echo "Données modifiées";
+        }
+
+        // Suppression de données avec bouton "supprimer"
+        if (isset($_GET['deleteCentre'])){
+            $idCentre = $_GET['deleteCentre'];
+            $sql = "DELETE FROM centres WHERE id_centre = :idCentre";
+            $stmt = $bdd->prepare($sql);
+            $stmt->bindParam(':idCentre', $idCentre);
+            $stmt->execute();
+        }
     }
 
-    // Bouton enregistrer dans BDD
+    //Ajout de données avec bouton "ajouter"
     if (isset($_POST['submitCentre'])){
         $villeCentre = $_POST['villeCentre'];
         $adresseCentre = $_POST['adresseCentre'];
@@ -200,30 +272,26 @@ $pass = "admin"; // Remplacez par votre mot de passe
         echo "data ajoutée dans la bdd";
     }
 
-    // Page formation
 
-    //supprimer des données
-    if (isset($_GET['deleteFormation'])) {
-        $idFormation = $_GET['deleteFormation'];
-        $sql = "DELETE FROM formations WHERE id_formation = :idFormation";
-        $stmt = $bdd->prepare($sql);
-        $stmt->bindParam(':idFormation', $idFormation, PDO::PARAM_INT);
-        $stmt->execute();
-    }
 
-    //contenu de la page formation
+
+
+    // 3 Page formation
+
+    //Si page = centre (true) : Afficher le contenu de la page centre
     if (isset($_GET["page"]) && $_GET["page"] == "formation"){
-
-        $sql = "SELECT * FROM formations";
-        $stmt = $bdd->prepare($sql);
-        $stmt->execute();
-        $formations = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
+        $sqlFormation = "SELECT * FROM formations";
+        $requeteFormation = $bdd->query($sqlFormation);
+        $resultsFormation = $requeteFormation->fetchAll(PDO::FETCH_ASSOC);
+        
         ?>
 
-        <!-- Formulaire à remplir -->
+        <!-- Tableau -->
+        <div class="centerDiv">
+
+            <!-- Partie d'ajout de données -->
             <form method="POST">
-                <h1>Ajout de formation</h1>
+                <h1>Ajout de Formation</h1>
                 <label>Nom de la formation :</label>
                 <input type="text" name="nomFormation">
                 <br>
@@ -238,28 +306,92 @@ $pass = "admin"; // Remplacez par votre mot de passe
                 <br>
                 <input type="submit" name="submitFormation" value="Enregistrer">
             </form>
+
+            <table border="1">
+                <tr>
+                    <!-- Noms de colonnes -->
+                    <th>Nom formation :</th>
+                    <th>Durée formation :</th>
+                    <th>Niveau de sortie :</th>
+                    <th>Description :</th>
+                    <th>Actions</th>
+                </tr>
+
+                <?php
+                //Données à entrer dans le tableau par la base de données
+                foreach($resultsFormation as $formations){
+                    echo '<tr>';
+                    echo '<td>' . ($formations['nom_formation']) . '</td>';
+                    echo '<td>' . ($formations['duree_formation']) . '</td>';
+                    echo '<td>' . ($formations['niveau_sortie_formation']) . '</td>';
+                    echo '<td>' . ($formations['description']) . '</td>';
+                    echo '<td><a href="?page=formation&type=modifier&id=' . ($formations['id_formation']) . '"><button>Modifier</button></a></td>';
+                    echo '<td><a href="?page=formation&deleteFormation=' . ($formations['id_formation']) . '" onclick="return confirm(\'Êtes-vous sûr de vouloir supprimer cette formation ?\');"><button>Supprimer</button></a></td>';
+                    echo '</tr>';
+                }
+                ?>
+
+            </table>
+
+        </div>
+
         <?php
 
-        // Afficher dans un tableau
-        echo '<table border="1">';
-        echo '<tr><th>Formation</th><th>Durée</th><th>Niveau de sortie</th><th>Description</th><th>Actions</th></tr>';
-        foreach ($formations as $formation) {
-            echo '<tr>';
-            echo '<td>' . htmlspecialchars($formation['nom_formation']) . '</td>';
-            echo '<td>' . htmlspecialchars($formation['duree_formation']) . '</td>';
-            echo '<td>' . htmlspecialchars($formation['niveau_sortie_formation']) . '</td>';
-            echo '<td>' . htmlspecialchars($formation['description']) . '</td>';
-            echo '<td>
-                <a href="?page=formation&editFormation=' . $formation['id_formation'] . '">Modifier</a> |
-                <a href="?page=formation&deleteFormation=' . $formation['id_formation'] . '" onclick="return confirm(\'Êtes-vous sûr de vouloir supprimer cette formation ?\');">Supprimer</a></td>';
-            echo '</tr>';
-        }
-        
-        echo '</table>';
+        // Si URL de type = modifier (true) avec ID :
+        if(isset($_GET['type']) && $_GET['type'] == "modifier"){
+            $id = $_GET["id"];
+            $sqlId = "SELECT * FROM formations WHERE id_formation = :id";
+            $requeteId = $bdd->prepare($sqlId);
+            $requeteId->bindParam(':id', $id);
+            $requeteId->execute();
+            $resultsId = $requeteId->fetch(PDO::FETCH_ASSOC);
 
+                //Formulaire de modification
+                if ($resultsId){
+                    ?>
+                    <form method="POST">
+                        <input type="hidden" name="updateIdFormation" value="<?php echo ($resultsId['id_formation']); ?>">
+                        <input type="text" name="updateNomFormation" value="<?php echo ($resultsId['nom_formation']); ?>">
+                        <input type="text" name="updateDureeFormation" value="<?php echo ($resultsId['duree_formation']); ?>">
+                        <input type="text" name="updateNiveauFormation" value="<?php echo ($resultsId['niveau_sortie_formation']); ?>">
+                        <input type="text" name="updateDescriptionFormation" value="<?php echo ($resultsId['description']); ?>">
+                        <input type="submit" name="updateFormation" value="Mise à jour">
+                    </form>
+                    <?php
+                }
+        }
+
+        if (isset($_POST["updateFormation"])){
+            //valider et changer les données dans la bdd avec le bouton "modifier"
+            $updateIdFormation = $_POST["updateIdFormation"];
+            $updateNomFormation = $_POST["updateNomFormation"];
+            $updateDureeFormation = $_POST["updateDureeFormation"];
+            $updateNiveauFormation = $_POST["updateNiveauFormation"];
+            $updateDescriptionFormation = $_POST["updateDescriptionFormation"];
+
+            $sqlUpdate = "UPDATE formations SET nom_formation = :nomFormation, duree_formation = :dureeFormation, niveau_sortie_formation = :niveauFormation, `description` = :descFormation  WHERE id_formation = :idFormation";
+            $stmtUpdate = $bdd->prepare($sqlUpdate);
+            $stmtUpdate->bindParam(':nomFormation', $updateNomFormation);
+            $stmtUpdate->bindParam(':dureeFormation', $updateDureeFormation);
+            $stmtUpdate->bindParam(':niveauFormation', $updateNiveauFormation);
+            $stmtUpdate->bindParam(':descFormation', $updateDescriptionFormation);
+            $stmtUpdate->bindParam(':idFormation', $updateIdFormation);
+            $stmtUpdate->execute();
+        
+            echo "Données modifiées";
+        }
+
+        //suppression de données avec bouton "supprimer"
+        if (isset($_GET['deleteFormation'])){
+            $idFormation = $_GET['deleteFormation'];
+            $sql = "DELETE FROM formations WHERE id_formation = :idFormation";
+            $stmt = $bdd->prepare($sql);
+            $stmt->bindParam('idFormation', $idFormation);
+            $stmt->execute();
+        }
     }
 
-    // Bouton enregistrer dans BDD
+    //Ajout de données avec bouton "ajouter"
     if (isset($_POST['submitFormation'])){
         $nomFormation = $_POST['nomFormation'];
         $dureeFormation = $_POST['dureeFormation'];
@@ -273,203 +405,374 @@ $pass = "admin"; // Remplacez par votre mot de passe
         echo "data ajoutée dans la bdd";
     }
 
-    // Page equipe
-    if (isset($_GET['deleteEquipe'])) {
-    $idEquipe = $_GET['deleteEquipe'];
-    $sql = "DELETE FROM pedagogie WHERE id_pedagogie = :idEquipe"; 
-    $stmt = $bdd->prepare($sql);
-    $stmt->bindParam(':idEquipe', $idEquipe, PDO::PARAM_INT);
-    $stmt->execute();
-}
 
-    if (isset($_GET["page"]) && $_GET["page"] == "equipe"){
 
-        $sql = "SELECT * FROM role";
-        $requete = $bdd->query($sql);
-        $results = $requete->fetchAll;
 
-        $sql = "SELECT * FROM pedagogie";
-        $stmt = $bdd->prepare($sql);
-        $stmt->execute();
-        $equipes = $stmt->fetchAll;
+
+    // 4 Page pedagogie
+
+    //Si page = pedagogie (true) : Afficher le contenu de la page pedagogie
+    if (isset($_GET["page"]) && $_GET["page"] == "pedagogie"){
+        $sqlRole = "SELECT * FROM role";
+        $requeteRole = $bdd->query($sqlRole);
+        $resultsRole = $requeteRole->fetchAll(PDO::FETCH_ASSOC);
+
+        $sqlPedagogie = "SELECT * FROM pedagogie";
+        $requetePedagogie = $bdd->prepare($sqlPedagogie);
+        $requetePedagogie->execute();
+        $resultsPedagogie = $requetePedagogie->fetchAll(PDO::FETCH_ASSOC);
 
         ?>
+
+        <!-- Tableau -->
+        <div class="centerDiv">
+
+            <!-- Partie d'ajout de données -->
             <form method="POST">
                 <h1>Ajout d'un membre d'équipe</h1>
                 <label>Nom :</label>
-                <input type="text" name="nomEquipe">
+                <input type="text" name="nomPedagogie">
                 <br>
                 <label>Prénom :</label>
-                <input type="text" name="prenomEquipe">
+                <input type="text" name="prenomPedagogie">
                 <br>
                 <label>Mail :</label>
-                <input type="text" name="mailEquipe">
+                <input type="text" name="mailPedagogie">
                 <br>
                 <label>Téléphone :</label>
-                <input type="text" name="numEquipe">
+                <input type="text" name="numPedagogie">
                 <br>
                 <label>Role :</label>
                 <select name="idRole" id="">
 
                     <?php
-                    foreach( $results as $value ){             
-                    echo '<option value="' . $value['id_role'] .  '">' . $value['id_role'] . ' - ' . $value['nom_role'] . '</option>';
+                    foreach($resultsRole as $role) {             
+                        echo '<option value="' . ($role['id_role']) . '">' . ($role['nom_role']) . '</option>';
                     }
                     ?>
 
                 </select>
-                <input type="submit" name="submitEquipe" value="Enregistrer">
+                <input type="submit" name="submitPedagogie" value="Enregistrer">
             </form>
-        
+
+            <table border="1">
+                <tr>
+                    <!-- Noms des colonnes -->
+                    <th>Nom :</th>
+                    <th>Prénom :</th>
+                    <th>Mail :</th>
+                    <th>Téléphone :</th>
+                    <th>Role :</th>
+                    <th>Modifier :</th>
+                    <th>Action :</th>
+                </tr>
+
+                <?php
+                //Données à entrer dans le tableau par bdd
+                foreach($resultsPedagogie as $pedagogie){
+                    echo '<tr>';
+                    echo '<td>' . ($pedagogie['nom_pedagogie']) . '</td>';
+                    echo '<td>' . ($pedagogie['prenom_pedagogie']) . '</td>';
+                    echo '<td>' . ($pedagogie['mail_pedagogie']) . '</td>';
+                    echo '<td>' . ($pedagogie['num_pedagogie']) . '</td>';
+                    echo '<td>' . ($pedagogie['id_role']) . '</td>'; 
+                    echo '<td><a href="?page=pedagogie&type=modifier&id=' . ($pedagogie['id_pedagogie']) . '"><button>Modifier</button></a></td>';
+                    echo '<td><a href="?page=pedagogie&deletePedagogie=' . ($pedagogie['id_pedagogie']) . '" onclick="return confirm(\'Êtes-vous sûr de vouloir supprimer ce membre ?\');"><button>Supprimer</button></a></td>';
+                    echo '</tr>';
+                }
+                ?>
+
+            </table>
+
+        </div>
+
         <?php
 
-        // Display the roles in a table
-        echo '<table border="1">';
-        echo '<tr><th>Nom</th><th>Prénom</th><th>Mail</th><th>Téléphone</th><th>Actions</th></tr>';
-        foreach ($equipes as $equipe) {
-            echo '<tr>';
-            echo '<td>' . ($equipe['nom_pedagogie']) . '</td>';
-            echo '<td>' . ($equipe['prenom_pedagogie']) . '</td>';
-            echo '<td>' . ($equipe['mail_pedagogie']) . '</td>';
-            echo '<td>' . ($equipe['num_pedagogie']) . '</td>';
-            echo '<td>
-                <a href="?page=equipe&editEquipe=' . $equipe['id_pedagogie'] . '">Modifier</a> |
-                <a href="?page=equipe&deleteEquipe=' . $equipe['id_pedagogie'] . '" onclick="return confirm(\'Êtes-vous sûr de vouloir supprimer ce membre de l\'équipe ?\');">Supprimer</a></td>';
-            echo '</tr>';
-        }
-        
-        echo '</table>';
+        // Si URL de type = modifier (true) avec ID :
+            if(isset($_GET['type']) && $_GET['type'] == "modifier") {
+                $id = $_GET["id"];
+                $sqlId = "SELECT * FROM pedagogie WHERE id_pedagogie = :id";
+                $requeteId = $bdd->prepare($sqlId);
+                $requeteId->bindParam(':id', $id);
+                $requeteId->execute();
+                $resultsId = $requeteId->fetch(PDO::FETCH_ASSOC);
+    
+                    //Formulaire de modification
+                    if ($resultsId){
+                        ?>
+                        <form method="POST">
+                            <input type="hidden" name="updateIdPedagogie" value="<?php echo ($resultsId['id_pedagogie']); ?>">
+                            <input type="text" name="updateNomPedagogie" value="<?php echo ($resultsId['nom_pedagogie']); ?>">
+                            <input type="text" name="updatePrenomPedagogie" value="<?php echo ($resultsId['prenom_pedagogie']); ?>">
+                            <input type="text" name="updateMailPedagogie" value="<?php echo ($resultsId['mail_pedagogie']); ?>">
+                            <input type="text" name="updateNumPedagogie" value="<?php echo ($resultsId['num_pedagogie']); ?>">
+                            <input type="submit" name="updatePedagogie" value="Mise à jour">
+                        </form>
+                        <?php
+                    }
+            }
 
-    if (isset($_POST['submitEquipe'])){
-        $nomEquipe = $_POST['nomEquipe'];
-        $prenomEquipe = $_POST['prenomEquipe'];
-        $mailEquipe = $_POST['mailEquipe'];
-        $numEquipe = $_POST['numEquipe'];
-        $role = $_POST['idRole'];
+            if (isset($_POST["updatePedagogie"])){
+                //valider et changer les données dans la bdd avec le bouton "modifier"
+                $updateIdPedagogie = $_POST["updateIdPedagogie"];
+                $updateNomPedagogie = $_POST["updateNomPedagogie"];
+                $updatePrenomPedagogie = $_POST["updatePrenomPedagogie"];
+                $updateMailPedagogie = $_POST["updateMailPedagogie"];
+                $updateNumPedagogie = $_POST["updateNumPedagogie"];
+    
+                $sqlUpdate = "UPDATE pedagogie SET nom_pedagogie = :nomPedagogie, prenom_pedagogie = :prenomPedagogie, mail_pedagogie = :mailPedagogie, num_pedagogie = :numPedagogie  WHERE id_pedagogie = :idPedagogie";
+                $stmtUpdate = $bdd->prepare($sqlUpdate);
+                $stmtUpdate->bindParam(':nomPedagogie', $updateNomPedagogie);
+                $stmtUpdate->bindParam(':prenomPedagogie', $updatePrenomPedagogie);
+                $stmtUpdate->bindParam(':mailPedagogie', $updateMailPedagogie);
+                $stmtUpdate->bindParam(':numPedagogie', $updateNumPedagogie);
+                $stmtUpdate->bindParam(':idPedagogie', $updateIdPedagogie);
+                $stmtUpdate->execute();
+            
+                echo "Données modifiées";
+            }
 
-        $sql = "INSERT INTO `pedagogie`(`nom_pedagogie`, `prenom_pedagogie`, `mail_pedagogie`, `num_pedagogie`, `id_role`) 
-        VALUES ('$nomEquipe','$prenomEquipe','$mailEquipe','$numEquipe', '$role')";
-        $bdd->query($sql);
+            // Suppression de données avec bouton "supprimer"
+            if(isset($_GET['deletePedagogie'])) {
+                $idPedagogie = $_GET['deletePedagogie'];
+                $sqlDelete = "DELETE FROM pedagogie WHERE id_pedagogie = :idPedagogie";
+                $stmtDelete = $bdd->prepare($sqlDelete);
+                $stmtDelete->bindParam(':idPedagogie', $idPedagogie);
+                $stmtDelete->execute();
 
-        echo "data ajoutée dans la bdd";
+                echo "Membre supprimé";
+            }
     }
-}
 
-    // Page session
+    // Ajout de données avec bouton "ajouter"
+    if (isset($_POST['submitPedagogie'])) {
+        $nomPedagogie = $_POST['nomPedagogie'];
+        $prenomPedagogie = $_POST['prenomPedagogie'];
+        $mailPedagogie = $_POST['mailPedagogie'];
+        $numPedagogie = $_POST['numPedagogie'];
+        $idRole = $_POST['idRole'];
+
+        $sqlInsert = "INSERT INTO pedagogie (nom_pedagogie, prenom_pedagogie, mail_pedagogie, num_pedagogie, id_role) VALUES (:nomPedagogie, :prenomPedagogie, :mailPedagogie, :numPedagogie, :idRole)";
+        $stmtInsert = $bdd->prepare($sqlInsert);
+        $stmtInsert->bindParam(':nomPedagogie', $nomPedagogie);
+        $stmtInsert->bindParam(':prenomPedagogie', $prenomPedagogie);
+        $stmtInsert->bindParam(':mailPedagogie', $mailPedagogie);
+        $stmtInsert->bindParam(':numPedagogie', $numPedagogie);
+        $stmtInsert->bindParam(':idRole', $idRole);
+        $stmtInsert->execute();
+
+        echo "Membre d'équipe ajouté avec succès";
+    }
+
+
+
+
+
+    // 5 Page session
+
+    // Si page = session (true) : Afficher le contenu 
     if (isset($_GET["page"]) && $_GET["page"] == "session"){
 
-        // Traitement de la suppression d'une session
-        if (isset($_GET['deleteSession'])) {
-            $idSession = $_GET['deleteSession'];
-            $sql = "DELETE FROM session WHERE id_session = :idSession"; 
-            $stmt = $bdd->prepare($sql);
-            $stmt->bindParam(':idSession', $idSession, PDO::PARAM_INT);
-            $stmt->execute();
-        }
+        // Récupération des informations pour les menus déroulants
+        $sqlPedagogie = "SELECT * FROM pedagogie";
+        $stmtPedagogie = $bdd->query($sqlPedagogie);
+        $resultsPedagogie = $stmtPedagogie->fetchAll(PDO::FETCH_ASSOC);
 
-    // Récupération des informations pour les menus déroulants
-    $sqlPedagogie = "SELECT * FROM pedagogie";
-    $stmtPedagogie = $bdd->query($sqlPedagogie);
-    $resultsPedagogie = $stmtPedagogie->fetchAll(PDO::FETCH_ASSOC);
+        $sqlFormations = "SELECT * FROM formations";
+        $stmtFormations = $bdd->query($sqlFormations);
+        $resultsFormations = $stmtFormations->fetchAll(PDO::FETCH_ASSOC);
 
-    $sqlFormations = "SELECT * FROM formations";
-    $stmtFormations = $bdd->query($sqlFormations);
-    $resultsFormations = $stmtFormations->fetchAll(PDO::FETCH_ASSOC);
+        $sqlCentres = "SELECT * FROM centres";
+        $stmtCentres = $bdd->query($sqlCentres);
+        $resultsCentres = $stmtCentres->fetchAll(PDO::FETCH_ASSOC);
 
-    $sqlCentres = "SELECT * FROM centres";
-    $stmtCentres = $bdd->query($sqlCentres);
-    $resultsCentres = $stmtCentres->fetchAll(PDO::FETCH_ASSOC);
-
-    $sql = "SELECT s.id_session, s.date_debut, s.nom_session, c.ville_centre, f.nom_formation, p.nom_pedagogie 
-        FROM session s
+        // Récupération des sessions
+        $sqlSessions = "SELECT s.id_session, s.date_debut, s.nom_session, c.ville_centre, f.nom_formation, p.nom_pedagogie 
+            FROM session s
             LEFT JOIN centres c ON s.id_centre = c.id_centre
             LEFT JOIN formations f ON s.id_formation = f.id_formation
             LEFT JOIN pedagogie p ON s.id_pedagogie = p.id_pedagogie";
-    $stmt = $bdd->prepare($sql);
-    $stmt->execute();
-    $sessions = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $stmtSessions = $bdd->prepare($sqlSessions);
+        $stmtSessions->execute();
+        $sessions = $stmtSessions->fetchAll(PDO::FETCH_ASSOC);
 
         ?>
+
+        <!-- Tableau -->
+        <div class="centerDiv">
+
+            <!-- Partie d'ajout de données -->
             <form method="POST">
                 <h1>Ajout de session</h1>
                 <label>Date de début :</label>
-                <input type="text" name="dateSession">
+                <input type="text" name="dateDebut">
                 <br>
                 <label>Nom de session :</label>
                 <input type="text" name="nomSession">
                 <br>
-                <label>Equipe :</label>            
+                <label>Formateur</label>            
                 <select name="idPedagogie" id="">
+
                     <?php
                     foreach ($resultsPedagogie as $value) {             
                         echo '<option value="' . $value['id_pedagogie'] .  '">' . $value['nom_pedagogie'] . '</option>';
                     }
                     ?>
+
                 </select>
                 <br>
                 <label>Formation :</label>
                 <select name="idFormation" id="">
+
                     <?php
                     foreach ($resultsFormations as $value) {             
                         echo '<option value="' . $value['id_formation'] .  '">' . $value['nom_formation'] . '</option>';
                     }
                     ?>
+
                 </select>
                 <br>
                 <label>Centre :</label>
                 <select name="idCentre" id="">
+
                     <?php
                     foreach ($resultsCentres as $value) {             
                         echo '<option value="' . $value['id_centre'] .  '">' . $value['ville_centre'] . '</option>';
                     }
                     ?>
+
                 </select>
                 <br>
                 <input type="submit" name="submitSession" value="Enregistrer">
             </form>
 
+            <table border="1">
+                <tr>
+                    <!-- Noms des colonnes -->
+                    <th>Date de début :</th>
+                    <th>Num de session</th>
+                    <th>Nom de formation :</th>
+                    <th>Centre :</th>
+                    <th>Nom formateur :</th>
+                    <th>Modifier :</th>
+                    <th>Action :</th>
+                </tr>
+
                 <?php
+                //Données à entrer dans le tableau par bdd
+                foreach($sessions as $session){
+                    echo '<tr>';
+                    echo '<td>' . ($session['date_debut']) . '</td>';
+                    echo '<td>' . ($session['nom_session']) . '</td>';
+                    echo '<td>' . ($session['nom_formation']) . '</td>';
+                    echo '<td>' . ($session['ville_centre']) . '</td>';
+                    echo '<td>' . ($session['nom_pedagogie']) . '</td>';
+                    echo '<td><a href="?page=session&type=modifier&id=' . ($session['id_session']) . '"><button>Modifier</button></a></td>';
+                    echo '<td><a href="?page=session&deleteSession=' . ($session['id_session']) . '" onclick="return confirm(\'Êtes-vous sûr de vouloir supprimer cette session ?\');"><button>Supprimer</button></a></td>';
+                    echo '</tr>';
+                }
+                ?>
 
-        // Afficher la table
-        echo '<table border="1">';
-        echo '<tr><th>Date de début</th><th>Nom de la session</th><th>Centre</th><th>Formation</th><th>Formateur</th><th>Actions</th></tr>';
-        foreach ($sessions as $session) {
-            echo '<tr>';
-            echo '<td>' . htmlspecialchars($session['date_debut']) . '</td>';
-            echo '<td>' . htmlspecialchars($session['nom_session']) . '</td>';
-            echo '<td>' . htmlspecialchars($session['ville_centre']) . '</td>';
-            echo '<td>' . htmlspecialchars($session['nom_formation']) . '</td>';
-            echo '<td>' . htmlspecialchars($session['nom_pedagogie']) . '</td>';
-            echo '<td>
-                <a href="?page=session&editSession=' . $session['id_session'] . '">Modifier</a> |
-                <a href="?page=session&deleteSession=' . $session['id_session'] . '" onclick="return confirm(\'Êtes-vous sûr de vouloir supprimer cette session ?\');">Supprimer</a></td>';
-            echo '</tr>';
-        }
-        echo '</table>';
+            </table>
+
+        </div>
+
+        <?php
+
+            //Si URL de type = modifier (true) avec ID :
+            if(isset($_GET['type']) && $_GET['type'] == "modifier") {
+                $id = $_GET["id"];
+                $sqlId = "SELECT * FROM session WHERE id_session = :id";
+                $requeteId = $bdd->prepare($sqlId);
+                $requeteId->bindParam(':id', $id);
+                $requeteId->execute();
+                $resultsId = $requeteId->fetch(PDO::FETCH_ASSOC);
+        
+                    //Formulaire de modification
+                    if ($resultsId){
+                        ?>
+                        <form method="POST">
+                            <input type="hidden" name="updateIdSession" value="<?php echo ($resultsId['id_session']); ?>">
+                            <input type="text" name="updateDateDebut" value="<?php echo ($resultsId['date_debut']); ?>">
+                            <input type="text" name="updateNomSession" value="<?php echo ($resultsId['nom_session']); ?>">
+                            <input type="text" name="updateNomFormation" value="<?php echo ($resultsId['nom_formation']); ?>">
+                            <input type="text" name="updateVilleCentre" value="<?php echo ($resultsId['ville_centre']); ?>">
+                            <input type="text" name="updateNomPedagogie" value="<?php echo ($resultsId['nom_pedagogie']); ?>">
+                            <input type="submit" name="updatePedagogie" value="Mise à jour">
+                        </form>
+                        <?php
+                    }
+            }
+
+            if (isset($_POST["updateSession"])){
+                //valider et changer les données dans la bdd avec le bouton "modifier"
+                $updateIdSession = $_POST["updateIdSession"];
+                $updateDateDebut = $_POST["updateDateDebut"];
+                $updateNomSession = $_POST["updateNomSession"];
+                $updateNomFormation = $_POST["updateNomFormation"];
+                $updateVilleCentre = $_POST["updateVilleCentre"];
+                $updateNomPedagogie = $_POST["updateNomPedagogie"];
+    
+                $sqlUpdate = "UPDATE session SET date_debut = :dateDebut, nom_session = :nomSession, nom_formation = :nomFormation, ville_centre = :villeCentre, nom_pedagogie = :nomPedagogie  WHERE id_session = :idSession";
+                $stmtUpdate = $bdd->prepare($sqlUpdate);
+                $stmtUpdate->bindParam(':dateDebut', $updateDateDebut);
+                $stmtUpdate->bindParam(':nomSession', $updateNomSession);
+                $stmtUpdate->bindParam(':nomFormation', $updateNomFormation);
+                $stmtUpdate->bindParam(':villeCentre', $updateVilleCentre);
+                $stmtUpdate->bindParam(':nomPedagogie', $updateNomPedagogie);
+                $stmtUpdate->bindParam(':idSession', $updateIdSession);
+                $stmtUpdate->execute();
+            
+                echo "Données modifiées";
+            }
+
+            // Suppression de données avec bouton "supprimer"
+            if (isset($_GET['deleteSession'])) {
+                $idSession = $_GET['deleteSession'];
+                $sqlDelete = "DELETE FROM session WHERE id_session = :idSession";
+                $stmtDelete = $bdd->prepare($sqlDelete);
+                $stmtDelete->bindParam(':idSession', $idSession, PDO::PARAM_INT);
+                $stmtDelete->execute();
+                echo "<p>Session supprimée avec succès.</p>";
+            }
     }
 
-    if (isset($_POST['submitSession'])){
-        $dateSession = $_POST['dateSession'];
-        $nomSession = $_POST['nomSession'];
-        $pedagogie = $_POST['idPedagogie'];
-        $formation = $_POST['idFormation'];
-        $centre = $_POST['idCentre'];
-
-        $sql = "INSERT INTO `session`(`date_debut`, `id_pedagogie`,`id_formation`, `id_centre`, `nom_session`) 
-        VALUES ('$dateSession', '$pedagogie', '$formation', '$centre', '$nomSession')";
-        $bdd->query($sql);
-
-        echo "data ajoutée dans la bdd";
+    // Ajout de données avec bouton "ajouter"
+    if (isset($_POST['submitSession'])) {
+            
+            $dateDebut = $_POST['dateDebut'];
+            $nomSession = $_POST['nomSession'];
+            $idFormation = $_POST['idFormation'];
+            $idCentre = $_POST['idCentre'];
+            $idPedagogie = $_POST['idPedagogie'];
+    
+            // Utilisation des ID au lieu des noms pour les champs de relation
+            $sqlInsert = "INSERT INTO session (date_debut, nom_session, id_formation, id_centre, id_pedagogie) VALUES (:dateDebut, :nomSession, :idFormation, :idCentre, :idPedagogie)";
+            $stmtInsert = $bdd->prepare($sqlInsert);
+    
+            // Liaison des paramètres
+            $stmtInsert->bindParam(':dateDebut', $dateDebut);
+            $stmtInsert->bindParam(':nomSession', $nomSession);
+            $stmtInsert->bindParam(':idFormation', $idFormation);
+            $stmtInsert->bindParam(':idCentre', $idCentre);
+            $stmtInsert->bindParam(':idPedagogie', $idPedagogie);
+    
+            echo "Session ajoutée";
     }
+
+
+
+
 
     // Page apprenant
+
     if (isset($_GET["page"]) && $_GET["page"] == "apprenant"){
 
         if (isset($_GET['deleteApprenant'])) {
             $idApprenant = $_GET['deleteApprenant'];
             $sql = "DELETE FROM apprenants WHERE id_apprenant = :idApprenant"; 
             $stmt = $bdd->prepare($sql);
-            $stmt->bindParam(':idApprenant', $idApprenant, PDO::PARAM_INT);
+            $stmt->bindParam(':idApprenant', $idApprenant);
             $stmt->execute();
         }
 
@@ -559,14 +862,14 @@ $pass = "admin"; // Remplacez par votre mot de passe
         echo '<tr><th>Nom</th><th>Prénom</th><th>Mail</th><th>Adresse</th><th>Ville</th><th>Code Postal</th><th>Téléphone</th><th>Diplome</th><th>Actions</th></tr>';
         foreach ($apprenants as $apprenant) {
             echo '<tr>';
-            echo '<td>' . htmlspecialchars($apprenant['nom_apprenant']) . '</td>';
-            echo '<td>' . htmlspecialchars($apprenant['prenom_apprenant']) . '</td>';
-            echo '<td>' . htmlspecialchars($apprenant['mail_apprenant']) . '</td>';
-            echo '<td>' . htmlspecialchars($apprenant['adresse_apprenant']) . '</td>';
-            echo '<td>' . htmlspecialchars($apprenant['ville_apprenant']) . '</td>';
-            echo '<td>' . htmlspecialchars($apprenant['code_postal_apprenant']) . '</td>';
-            echo '<td>' . htmlspecialchars($apprenant['tel_apprenant']) . '</td>';
-            echo '<td>' . htmlspecialchars($apprenant['niveau_apprenant']) . '</td>';
+            echo '<td>' . ($apprenant['nom_apprenant']) . '</td>';
+            echo '<td>' . ($apprenant['prenom_apprenant']) . '</td>';
+            echo '<td>' . ($apprenant['mail_apprenant']) . '</td>';
+            echo '<td>' . ($apprenant['adresse_apprenant']) . '</td>';
+            echo '<td>' . ($apprenant['ville_apprenant']) . '</td>';
+            echo '<td>' . ($apprenant['code_postal_apprenant']) . '</td>';
+            echo '<td>' . ($apprenant['tel_apprenant']) . '</td>';
+            echo '<td>' . ($apprenant['niveau_apprenant']) . '</td>';
             echo '<td>
                 <a href="?page=apprenant&editApprenant=' . $apprenant['id_apprenant'] . '">Modifier</a> |
                 <a href="?page=apprenant&deleteApprenant=' . $apprenant['id_apprenant'] . '" onclick="return confirm(\'Êtes-vous sûr de vouloir supprimer cet apprenant ?\');">Supprimer</a></td>';
